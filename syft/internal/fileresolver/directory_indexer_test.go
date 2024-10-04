@@ -281,6 +281,7 @@ func TestDirectoryIndexer_SkipsAlreadyVisitedLinkDestinations(t *testing.T) {
 		"before-path",   // considered from symlink c-path, but pruned
 	}
 
+	// Iteration order is not guaranteed, sort the expected & observed paths to allow comparison
 	sort.Slice(expected, func(i, j int) bool {
 		return expected[i] < expected[j]
 	})
