@@ -281,6 +281,12 @@ func TestDirectoryIndexer_SkipsAlreadyVisitedLinkDestinations(t *testing.T) {
 		"before-path",   // considered from symlink c-path, but pruned
 	}
 
+	sort.Slice(expected, func(i, j int) bool {
+		return expected[i] < expected[j]
+	})
+	sort.Slice(observedPaths, func(i, j int) bool {
+		return observedPaths[i] < observedPaths[j]
+	})
 	assert.Equal(t, expected, observedPaths, "visited paths differ \n %s", cmp.Diff(expected, observedPaths))
 
 }

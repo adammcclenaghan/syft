@@ -3,6 +3,7 @@ package fileresolver
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -142,28 +143,94 @@ func (r *directoryIndexer) indexTree(root string, stager *progress.Stage) ([]str
 		return roots, nil
 	}
 
-	err = filepath.Walk(root,
-		func(path string, info os.FileInfo, err error) error {
-			stager.Current = path
+	err = r.customWalkOuter(root, stager, func(path string, info os.FileInfo, err error) error {
+		stager.Current = path
 
-			newRoot, err := r.indexPath(path, info, err)
+		newRoot, err := r.indexPath(path, info, err)
+		if err != nil {
+			return err
+		}
 
-			if err != nil {
-				return err
-			}
+		if newRoot != "" {
+			roots = append(roots, newRoot)
+		}
 
-			if newRoot != "" {
-				roots = append(roots, newRoot)
-			}
-
-			return nil
-		})
+		return nil
+	})
 
 	if err != nil {
 		return nil, fmt.Errorf("unable to index root=%q: %w", root, err)
 	}
 
 	return roots, nil
+}
+
+func (r *directoryIndexer) customWalkOuter(root string, stager *progress.Stage, walkFn filepath.WalkFunc) error {
+	info, err := os.Lstat(root)
+	if err != nil {
+		err = walkFn(root, nil, err)
+	} else {
+		err = r.customWalkInner(root, stager, walkFn, info)
+	}
+	if errors.Is(err, fs.SkipDir) || errors.Is(err, filepath.SkipAll) {
+		return nil
+	}
+	return err
+
+}
+
+func (r *directoryIndexer) customWalkInner(path string, stager *progress.Stage, walkFn filepath.WalkFunc, info os.FileInfo) error {
+	// If we're visiting a file, just return call to walkFn
+	if !info.IsDir() {
+		return walkFn(path, info, nil)
+	}
+
+	dir, err := os.Open(path)
+	// Call walkFn on the current directory, its responsible for deciding to either ignore err or what it wants to do...
+	err1 := walkFn(path, info, err)
+	if err != nil || err1 != nil {
+		return err1
+	}
+	defer dir.Close()
+	// Recurse over items in dir one by one
+	for {
+		infos, err := dir.Readdir(1)
+		// Break out when we hit EOF.
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			} else {
+				// If its not EOF, make the callers aware. In our case, this lets filters determine behaviour
+				err2 := walkFn(path, info, err)
+				if err2 != nil {
+					// The walkFn (in our case, the filter functions it uses) have decided we should stop, so return the error
+					return err2
+				} else {
+					// They've decided we should continue to walk, go to the next iteration of this loop
+					continue
+				}
+			}
+		}
+
+		info := infos[0]
+		filename := filepath.Join(path, info.Name())
+		fileInfo, err := os.Lstat(filename)
+		if err != nil {
+			// Matching path.walk behaviour, I think this is handling stuff like symlinks
+			if err := walkFn(filename, fileInfo, err); err != nil && err != fs.SkipDir {
+				return err
+			}
+		} else {
+			// Recurse
+			err = r.customWalkInner(filename, stager, walkFn, fileInfo)
+			if err != nil {
+				if !fileInfo.IsDir() || !errors.Is(err, fs.SkipDir) {
+					return err
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func isRealPath(root string) (bool, error) {
