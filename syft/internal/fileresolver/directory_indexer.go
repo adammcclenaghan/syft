@@ -143,7 +143,7 @@ func (r *directoryIndexer) indexTree(root string, stager *progress.Stage) ([]str
 		return roots, nil
 	}
 
-	err = r.customWalkOuter(root, stager, func(path string, info os.FileInfo, err error) error {
+	err = customWalkOuter(root, func(path string, info os.FileInfo, err error) error {
 		stager.Current = path
 
 		newRoot, err := r.indexPath(path, info, err)
@@ -165,21 +165,20 @@ func (r *directoryIndexer) indexTree(root string, stager *progress.Stage) ([]str
 	return roots, nil
 }
 
-func (r *directoryIndexer) customWalkOuter(root string, stager *progress.Stage, walkFn filepath.WalkFunc) error {
+func customWalkOuter(root string, walkFn filepath.WalkFunc) error {
 	info, err := os.Lstat(root)
 	if err != nil {
 		err = walkFn(root, nil, err)
 	} else {
-		err = r.customWalkInner(root, stager, walkFn, info)
+		err = customWalkInner(root, walkFn, info)
 	}
 	if errors.Is(err, fs.SkipDir) || errors.Is(err, filepath.SkipAll) {
 		return nil
 	}
 	return err
-
 }
 
-func (r *directoryIndexer) customWalkInner(path string, stager *progress.Stage, walkFn filepath.WalkFunc, info os.FileInfo) error {
+func customWalkInner(path string, walkFn filepath.WalkFunc, info os.FileInfo) error {
 	// If we're visiting a file, just return call to walkFn
 	if !info.IsDir() {
 		return walkFn(path, info, nil)
@@ -222,7 +221,7 @@ func (r *directoryIndexer) customWalkInner(path string, stager *progress.Stage, 
 			}
 		} else {
 			// Recurse
-			err = r.customWalkInner(filename, stager, walkFn, fileInfo)
+			err = customWalkInner(filename, walkFn, fileInfo)
 			if err != nil {
 				if !fileInfo.IsDir() || !errors.Is(err, fs.SkipDir) {
 					return err
