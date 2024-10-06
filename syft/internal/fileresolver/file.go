@@ -31,16 +31,16 @@ func NewFromFile(parent, path string, pathFilters ...PathIndexVisitor) (*File, e
 		return nil, fmt.Errorf("unable to interpret chroot context: %w", err)
 	}
 
-	// TODO: Is it correct to use chrootpath here? Are my calls to abssymlinkfreepath in file indexer still valid then?
-	cleanPath := chroot.ToChrootPath(path)
 	cleanBase := chroot.Base()
 
+	chroot.Base()
+
 	file := &File{
-		path:    cleanPath,
+		path:    path,
 		chroot:  *chroot,
 		tree:    filetree.New(),
 		index:   filetree.NewIndex(),
-		indexer: newFileIndexer(cleanPath, cleanBase, pathFilters...),
+		indexer: newFileIndexer(path, cleanBase, pathFilters...),
 	}
 
 	return file, file.buildIndex()
