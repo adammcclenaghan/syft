@@ -24,7 +24,7 @@ type File struct {
 }
 
 // parent should be the symlink free absolute path to the parent directory
-// path is the filepath that we're creating a source for
+// path is the filepath of the file we're creating content access for
 func NewFromFile(parent, path string, pathFilters ...PathIndexVisitor) (*File, error) {
 	chroot, err := NewChrootContextFromCWD(parent, parent)
 	if err != nil {
@@ -62,14 +62,13 @@ func (r *File) buildIndex() error {
 	return nil
 }
 
-// TODO: Just copy pasted these to try and get to the point where I can run and test behaviour.
-// Maybe we can simplify some of these...
+// TODO: These are Copy-pasted from Directory.go - should we consider splitting them out into a shared place?
 
 func (r File) requestPath(userPath string) (string, error) {
 	return r.chroot.ToNativePath(userPath)
 }
 
-// responsePath takes a path from the underlying fs domain and converts it to a path that is relative to the root of the directory resolver.
+// responsePath takes a path from the underlying fs domain and converts it to a path that is relative to the root of the file resolver.
 func (r File) responsePath(path string) string {
 	return r.chroot.ToChrootPath(path)
 }
@@ -83,12 +82,12 @@ func (r *File) HasPath(userPath string) bool {
 	return r.tree.HasPath(stereoscopeFile.Path(requestPath))
 }
 
-// Stringer to represent a directory path data source
+// Stringer to represent a file path data source
 func (r File) String() string {
-	return fmt.Sprintf("dir:%s", r.path)
+	return fmt.Sprintf("file:%s", r.path)
 }
 
-// FilesByPath returns all file.References that match the given paths from the directory.
+// FilesByPath returns all file.References that match the given paths from the file index.
 func (r File) FilesByPath(userPaths ...string) ([]file.Location, error) {
 	var references = make([]file.Location, 0)
 

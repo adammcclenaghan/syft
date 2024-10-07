@@ -7,7 +7,6 @@ import (
 	"github.com/anchore/syft/internal/log"
 	"github.com/anchore/syft/syft/internal/windows"
 	"github.com/wagoodman/go-progress"
-	"io/fs"
 	"os"
 	"path/filepath"
 )
@@ -38,16 +37,6 @@ func newFileIndexer(path, base string, visitors ...PathIndexVisitor) *fileIndexe
 		errPaths: make(map[string]error),
 	}
 
-	// these additional stateful visitors should be the first thing considered when walking / indexing
-	/// TODO: I don't know if we need these yet...
-	i.pathIndexVisitors = append(
-		[]PathIndexVisitor{
-			i.disallowRevisitingVisitor,
-			i.disallowFileAccessErr,
-		},
-		i.pathIndexVisitors...,
-	)
-
 	return i
 }
 
@@ -58,16 +47,14 @@ func (r *fileIndexer) build() (filetree.Reader, filetree.IndexReader, error) {
 
 // Index file at the given path
 // A file indexer simply indexes the file and its directory.
-func index(path string, indexer func(string, *progress.Stage) ([]string, error)) error {
+func index(path string, indexer func(string, *progress.Stage) error) error {
 	// We want to index the file at the provided path and its parent directory.
 	// We need to probably check that we have file access
 	// We also need to determine what to do when the file itself is a symlink.
 	stager, prog := indexingProgress(path)
 	defer prog.SetCompleted()
 
-	// TODO: I don't think our indexer will ever return additionalRoots...
-	// If we don't need it, then remoce it from the function signature of indexPath...
-	_, err := indexer(path, stager)
+	err := indexer(path, stager)
 	if err != nil {
 		return fmt.Errorf("Unable to index filesystem path=%q: %w", path, err)
 	}
@@ -76,61 +63,63 @@ func index(path string, indexer func(string, *progress.Stage) ([]string, error))
 
 }
 
-// This is where we actually do the indexing logic for the file
-// path will be the path to file like "./a/b/c.txt"
-// We will ensure we get the absolute symlink free path
-func (r *fileIndexer) indexPath(path string, stager *progress.Stage) ([]string, error) {
-	// TODO: Impl similar logic to indexTree in directory_indexer
+// indexPath will index the file at the provided path as well as its parent directory.
+// It expects path to be a file, not a directory.
+// If a directory is provided then an error will be returned. Additionally, any IO or
+// permissions errors on the file at path or its parent directory will return an error.
+// Filter functions provided to the indexer are honoured, so if the path provided (or its parent
+// directory) is filtered by a filter function, an error is returned.
+func (r *fileIndexer) indexPath(path string, stager *progress.Stage) error {
+	// TODO: Verify that the paths we store in the index for both files are equivalent to what we'd store on main today.
 	log.WithFields("path", path).Trace("indexing file path")
 
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Protect against callers trying to call file_indexer with directories
 	fi, err := os.Stat(absPath)
 	// Directory indexing ignores stat errors, single file indexing shouldn't
-	// because we aren't walking the filesystem here, we don't need to ignore & continue.
+	// because we aren't walking the filesystem here.
 	if err != nil {
-		return nil, fmt.Errorf("unable to stat path=%q: %w", path, err)
+		return fmt.Errorf("unable to stat path=%q: %w", path, err)
+	}
+	if fi.IsDir() {
+		return fmt.Errorf("unable to index file, given path was a directory=%q", path)
 	}
 
-	if fi != nil {
-		if fi.IsDir() {
-			return nil, fmt.Errorf("unable to index file, given path was a directory=%q", path)
-		}
-	}
-
-	// If we get here then we have a file. We will index it and its parent
 	absSymlinkFreeFilePath, err := absoluteSymlinkFreePathToFile(path)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	stager.Current = absSymlinkFreeFilePath
-	indexFileErr := r.filterAndIndex(absSymlinkFreeFilePath, fi)
-
-	if indexFileErr != nil {
-		// TODO: What to do if we error here? We could look at SkipDir,SkipFile errs in case filters are set up I guess??
-	}
-
-	// We've indexed the file, now index its parent
+	// Now index the file and its parent directory
+	// We try to index the parent directory first, because if the parent directory
+	// is ignored by any filter function, then we must ensure we also ignore the file.
 	absSymlinkFreeParent, err := absoluteSymlinkFreePathToParent(absSymlinkFreeFilePath)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	parentFi, err := os.Stat(absSymlinkFreeParent)
+	if err != nil {
+		return fmt.Errorf("Unable to stat parent of file=%q: %w", absSymlinkFreeParent, err)
 	}
 
-	pfi, err := os.Stat(absSymlinkFreeParent)
-	// TODO: Verify not an err here and not nil pfi before continue
 	stager.Current = absSymlinkFreeParent
-	indexParentErr := r.filterAndIndex(absSymlinkFreeParent, pfi)
+	indexParentErr := r.filterAndIndex(absSymlinkFreeParent, parentFi)
 	if indexParentErr != nil {
-		// TODO: Again work out what behaviour here should be
+		return indexParentErr
 	}
 
-	// TODO: Remove first arg here don't think we need a return, just return nil err
-	return nil, nil
+	// We have indexed the parent successfully, now attempt to index the file.
+	stager.Current = absSymlinkFreeFilePath
+	indexFileErr := r.filterAndIndex(absSymlinkFreeFilePath, fi)
+	if indexFileErr != nil {
+		return indexFileErr
+	}
+
+	return nil
 }
 
 func (r *fileIndexer) filterAndIndex(path string, info os.FileInfo) error {
@@ -157,7 +146,7 @@ func (r *fileIndexer) filterAndIndex(path string, info os.FileInfo) error {
 	// While the directory_indexer does not let these cause the indexer to throw
 	// we will here, as not having access to the file we index for a file source
 	// probably makes the file source creation useless? I need to check with Syft owners.
-	// This also poses the question, is errPaths worthless for file_indexer?
+	// This also poses the question, is errPaths worthwhile for file_indexer?
 	if r.isFileAccessErr(path, err) {
 		return err
 	}
@@ -166,6 +155,7 @@ func (r *fileIndexer) filterAndIndex(path string, info os.FileInfo) error {
 }
 
 // Add path to index. File indexer doesn't need to support symlink, as we should have abs symlink free path.
+// If we somehow get a symlink here, report as an error.
 func (r *fileIndexer) addPathToIndex(path string, info os.FileInfo) error {
 	switch t := file.TypeFromMode(info.Mode()); t {
 	case file.TypeDirectory:
@@ -223,30 +213,6 @@ func absoluteSymlinkFreePathToFile(path string) (string, error) {
 	}
 	return dereferencedAbsAnalysisPath, nil
 
-}
-
-// TODO: These are the same as directory_indexer funcs. Not sure we need them for files.
-// TODO: Maybve want the disallowFileAccessErr functionality in some other way
-
-func (r *fileIndexer) disallowRevisitingVisitor(_, path string, _ os.FileInfo, _ error) error {
-	// this prevents visiting:
-	// - link destinations twice, once for the real file and another through the virtual path
-	// - infinite link cycles
-	if indexed, metadata := r.hasBeenIndexed(path); indexed {
-		if metadata.IsDir() {
-			// signal to walk() that we should skip this directory entirely
-			return fs.SkipDir
-		}
-		return ErrSkipPath
-	}
-	return nil
-}
-
-func (r *fileIndexer) disallowFileAccessErr(_, path string, _ os.FileInfo, err error) error {
-	if r.isFileAccessErr(path, err) {
-		return ErrSkipPath
-	}
-	return nil
 }
 
 func (r *fileIndexer) isFileAccessErr(path string, err error) bool {
