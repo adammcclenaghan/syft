@@ -56,7 +56,7 @@ func index(path string, indexer func(string, *progress.Stage) error) error {
 
 	err := indexer(path, stager)
 	if err != nil {
-		return fmt.Errorf("Unable to index filesystem path=%q: %w", path, err)
+		return fmt.Errorf("unable to index filesystem path=%q: %w", path, err)
 	}
 
 	return nil
@@ -70,7 +70,6 @@ func index(path string, indexer func(string, *progress.Stage) error) error {
 // Filter functions provided to the indexer are honoured, so if the path provided (or its parent
 // directory) is filtered by a filter function, an error is returned.
 func (r *fileIndexer) indexPath(path string, stager *progress.Stage) error {
-	// TODO: Verify that the paths we store in the index for both files are equivalent to what we'd store on main today.
 	log.WithFields("path", path).Trace("indexing file path")
 
 	absPath, err := filepath.Abs(path)
@@ -103,7 +102,7 @@ func (r *fileIndexer) indexPath(path string, stager *progress.Stage) error {
 	}
 	parentFi, err := os.Stat(absSymlinkFreeParent)
 	if err != nil {
-		return fmt.Errorf("Unable to stat parent of file=%q: %w", absSymlinkFreeParent, err)
+		return fmt.Errorf("unable to stat parent of file=%q: %w", absSymlinkFreeParent, err)
 	}
 
 	stager.Current = absSymlinkFreeParent
