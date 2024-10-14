@@ -79,8 +79,7 @@ func (r *fileIndexer) indexPath(path string, stager *progress.Stage) error {
 
 	// Protect against callers trying to call file_indexer with directories
 	fi, err := os.Stat(absPath)
-	// Directory indexing ignores stat errors, single file indexing shouldn't
-	// because we aren't walking the filesystem here.
+	// The directory indexer ignores stat errors, however this file indexer won't ignore them
 	if err != nil {
 		return fmt.Errorf("unable to stat path=%q: %w", path, err)
 	}
@@ -144,7 +143,7 @@ func (r *fileIndexer) filterAndIndex(path string, info os.FileInfo) error {
 	// the path to the errPaths map.
 	// While the directory_indexer does not let these cause the indexer to throw
 	// we will here, as not having access to the file we index for a file source
-	// probably makes the file source creation useless? I need to check with Syft owners.
+	// probably makes the file source creation useless? I need to check with Syft maintainers.
 	// This also poses the question, is errPaths worthwhile for file_indexer?
 	if r.isFileAccessErr(path, err) {
 		return err
