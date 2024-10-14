@@ -275,7 +275,7 @@ func (r *directoryIndexer) indexPath(givenPath string, info os.FileInfo, err err
 		return "", nil
 	}
 
-	// here we check to see if we need to normalize paths to posix on the way in coming from windows`
+	// here we check to see if we need to normalize paths to posix on the way in coming from windows
 	if windows.HostRunningOnWindows() {
 		givenPath = windows.ToPosix(givenPath)
 	}

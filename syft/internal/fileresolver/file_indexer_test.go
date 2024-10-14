@@ -84,7 +84,6 @@ func Test_ignoresPathIfFiltered(t *testing.T) {
 
 // - Verify ignores if filterAndIndex sets up a filter for the directory
 func Test_ignoresPathIfParentFiltered(t *testing.T) {
-	// TODO: Maybe I can write a single function that tests this and the above...?
 	testPath := "test-fixtures/system_paths/target/home/place"
 	parentPath := "test-fixtures/system_paths/target/home"
 
