@@ -184,8 +184,7 @@ func (r File) FilesByGlob(patterns ...string) ([]file.Location, error) {
 }
 
 // RelativeFileByPath fetches a single file at the given path relative to the layer squash of the given reference.
-// This is helpful when attempting to find a file that is in the same layer or lower as another file. For the
-// Directory, this is a simple path lookup.
+// This is helpful when attempting to find a file that is in the same layer or lower as another file.
 func (r *File) RelativeFileByPath(_ file.Location, path string) *file.Location {
 	paths, err := r.FilesByPath(path)
 	if err != nil {
