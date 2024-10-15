@@ -172,15 +172,15 @@ func (s fileSource) FileResolver(_ source.Scope) (file.Resolver, error) {
 		}
 		s.resolver = res
 		return s.resolver, nil
-	} else {
-		// This is analysis of a single file. Use file indexer.
-		res, err := fileresolver.NewFromFile(absParentDir, s.analysisPath, exclusionFunctions...)
-		if err != nil {
-			return nil, fmt.Errorf("unable to create file resolver: %w", err)
-		}
-		s.resolver = res
-		return s.resolver, nil
 	}
+
+	// This is analysis of a single file. Use file indexer.
+	res, err := fileresolver.NewFromFile(absParentDir, s.analysisPath, exclusionFunctions...)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create file resolver: %w", err)
+	}
+	s.resolver = res
+	return s.resolver, nil
 }
 
 func absoluteSymlinkFreePathToParent(path string) (string, error) {

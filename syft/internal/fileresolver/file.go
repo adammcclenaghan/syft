@@ -4,14 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
+
 	stereoscopeFile "github.com/anchore/stereoscope/pkg/file"
 	"github.com/anchore/stereoscope/pkg/filetree"
 	"github.com/anchore/syft/internal/log"
 	"github.com/anchore/syft/syft/file"
 	"github.com/anchore/syft/syft/internal/windows"
-	"io"
-	"os"
 )
+
+// Compile time assurance that we meet the Resolver interface.
+var _ file.Resolver = (*File)(nil)
 
 // File implements path and content access for the file data source.
 type File struct {
@@ -32,8 +36,6 @@ func NewFromFile(parent, path string, pathFilters ...PathIndexVisitor) (*File, e
 	}
 
 	cleanBase := chroot.Base()
-
-	chroot.Base()
 
 	file := &File{
 		path:    path,
@@ -143,6 +145,8 @@ func (r File) requestGlob(pattern string) (string, error) {
 }
 
 // FilesByGlob returns all file.References that match the given path glob pattern from any layer in the image.
+//
+//nolint:dupl
 func (r File) FilesByGlob(patterns ...string) ([]file.Location, error) {
 	uniqueFileIDs := stereoscopeFile.NewFileReferenceSet()
 	uniqueLocations := make([]file.Location, 0)
@@ -214,7 +218,7 @@ func (r File) FileContentsByLocation(location file.Location) (io.ReadCloser, err
 		return nil, fmt.Errorf("cannot read contents of non-file %q", location.Reference().RealPath)
 	}
 
-	// RealPath is posix so for windows directory resolver we need to translate
+	// RealPath is posix so for windows file resolver we need to translate
 	// to its true on disk path.
 	filePath := string(location.Reference().RealPath)
 	if windows.HostRunningOnWindows() {

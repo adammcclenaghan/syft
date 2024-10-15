@@ -2,13 +2,14 @@ package fileresolver
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+
 	"github.com/anchore/stereoscope/pkg/file"
 	"github.com/anchore/stereoscope/pkg/filetree"
 	"github.com/anchore/syft/internal/log"
 	"github.com/anchore/syft/syft/internal/windows"
 	"github.com/wagoodman/go-progress"
-	"os"
-	"path/filepath"
 )
 
 type fileIndexer struct {
@@ -60,7 +61,6 @@ func index(path string, indexer func(string, *progress.Stage) error) error {
 	}
 
 	return nil
-
 }
 
 // indexPath will index the file at the provided path as well as its parent directory.
@@ -210,7 +210,6 @@ func absoluteSymlinkFreePathToFile(path string) (string, error) {
 		return "", fmt.Errorf("unable to get absolute path for analysis path=%q: %w", path, err)
 	}
 	return dereferencedAbsAnalysisPath, nil
-
 }
 
 func (r *fileIndexer) isFileAccessErr(path string, err error) bool {
@@ -221,29 +220,4 @@ func (r *fileIndexer) isFileAccessErr(path string, err error) bool {
 		return true
 	}
 	return false
-}
-
-func (r fileIndexer) hasBeenIndexed(p string) (bool, *file.Metadata) {
-	filePath := file.Path(p)
-	if !r.tree.HasPath(filePath) {
-		return false, nil
-	}
-
-	exists, ref, err := r.tree.File(filePath)
-	if err != nil || !exists || !ref.HasReference() {
-		return false, nil
-	}
-
-	// cases like "/" will be in the tree, but not been indexed yet (a special case). We want to capture
-	// these cases as new paths to index.
-	if !ref.HasReference() {
-		return false, nil
-	}
-
-	entry, err := r.index.Get(*ref.Reference)
-	if err != nil {
-		return false, nil
-	}
-
-	return true, &entry.Metadata
 }

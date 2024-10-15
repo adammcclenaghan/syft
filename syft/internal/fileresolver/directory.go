@@ -150,6 +150,8 @@ func (r Directory) requestGlob(pattern string) (string, error) {
 }
 
 // FilesByGlob returns all file.References that match the given path glob pattern from any layer in the image.
+//
+//nolint:dupl
 func (r Directory) FilesByGlob(patterns ...string) ([]file.Location, error) {
 	uniqueFileIDs := stereoscopeFile.NewFileReferenceSet()
 	uniqueLocations := make([]file.Location, 0)
