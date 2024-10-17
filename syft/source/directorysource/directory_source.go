@@ -156,7 +156,6 @@ func (s *directorySource) FileResolver(_ source.Scope) (file.Resolver, error) {
 			}
 			s.resolver = res
 		}
-
 	}
 
 	return s.resolver, nil
