@@ -229,6 +229,8 @@ func (cfg *Catalog) AddFlags(flags clio.FlagSet) {
 
 	flags.StringVarP(&cfg.Source.BasePath, "base-path", "",
 		"base directory for scanning, no links will be followed above this directory, and all paths will be reported relative to this directory")
+	flags.BoolVarP(&cfg.Unindexed, "unindexed", "",
+		"whether to index the file system or not, indexing can improve scan times but incurs a memory overhead, default false.")
 }
 
 func (cfg *Catalog) DescribeFields(descriptions fangs.FieldDescriptionSet) {
