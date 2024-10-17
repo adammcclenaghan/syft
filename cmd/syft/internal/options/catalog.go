@@ -53,6 +53,7 @@ type Catalog struct {
 	Platform   string         `yaml:"platform" json:"platform" mapstructure:"platform"`
 	Source     sourceConfig   `yaml:"source" json:"source" mapstructure:"source"`
 	Exclusions []string       `yaml:"exclude" json:"exclude" mapstructure:"exclude"`
+	Unindexed  bool           `yaml:"unindexed" json:"unindexed" mapstructure:"unindexed"`
 
 	// configuration for inclusion of unknown information within elements
 	Unknowns unknownsConfig `yaml:"unknowns" mapstructure:"unknowns"`

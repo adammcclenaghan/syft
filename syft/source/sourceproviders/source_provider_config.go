@@ -15,6 +15,12 @@ type Config struct {
 	Exclude          source.ExcludeConfig
 	DigestAlgorithms []crypto.Hash
 	BasePath         string
+	Unindexed        bool
+}
+
+func (c *Config) WithUnindexed(unindexed bool) *Config {
+	c.Unindexed = unindexed
+	return c
 }
 
 func (c *Config) WithAlias(alias source.Alias) *Config {
