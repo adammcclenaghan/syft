@@ -20,7 +20,6 @@ import (
 
 	stereoscopeFile "github.com/anchore/stereoscope/pkg/file"
 	"github.com/anchore/syft/internal/log"
-	"github.com/anchore/syft/syft/file"
 	syftFile "github.com/anchore/syft/syft/file"
 )
 
@@ -214,7 +213,7 @@ func (u UnindexedDirectory) filesByGlob(resolveLinks bool, includeDirs bool, pat
 // This requires walking the filetree from u.base and checking the MIME type of each file we encounter
 // Handling of errors while walking is ignored unless a filterFn wants the directory to be skipped.
 func (u UnindexedDirectory) FilesByMIMEType(types ...string) ([]syftFile.Location, error) {
-	uniqueLocations := make([]file.Location, 0)
+	uniqueLocations := make([]syftFile.Location, 0)
 	// TODO: For now we use afero.Walk here to walk the entire dir tree, but we know that when a single directory
 	// contains many files this will cause us to run OOM due to how Golang provides lexical ordering guarantees by reading the entire dir into memory..
 	// That can be fixed by using a custom walk func that uses Readdir(N) where N >=1 so that the entire directory isn't read into
