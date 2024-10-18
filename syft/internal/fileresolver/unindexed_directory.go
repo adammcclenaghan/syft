@@ -221,12 +221,6 @@ func (u UnindexedDirectory) FilesByMIMEType(types ...string) ([]syftFile.Locatio
 	// memory each time...
 
 	err := afero.Walk(u.fs, u.absPath(u.base), func(p string, fi fs.FileInfo, walkErr error) error {
-		// Tidy the path, same as AllLocations
-		p = strings.TrimPrefix(p, u.dir)
-		if p == "" {
-			return nil
-		}
-		p = strings.TrimPrefix(p, "/")
 		// Ignore any path for which a filter function returns true
 		for _, filterFn := range u.pathFilters {
 			if filterFn == nil {
@@ -247,6 +241,12 @@ func (u UnindexedDirectory) FilesByMIMEType(types ...string) ([]syftFile.Locatio
 		mimeType := stereoscopeFile.NewMetadataFromPath(p, fi).MIMEType
 		for _, mType := range types {
 			if mimeType == mType {
+				// Tidy the path, same as AllLocations
+				p = strings.TrimPrefix(p, u.dir)
+				if p == "" {
+					return nil
+				}
+				p = strings.TrimPrefix(p, "/")
 				uniqueLocations = append(uniqueLocations, syftFile.NewLocation(p))
 			}
 		}
