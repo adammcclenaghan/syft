@@ -1296,6 +1296,30 @@ func Test_UnindexedDirectoryResolver_FilesByMIMEType(t *testing.T) {
 	}
 }
 
+func Test_UnindexedDirectoryResolver_RelativeFileByPath(t *testing.T) {
+	cases := []struct {
+		name       string
+		root       string
+		searchFile string
+		expected   *strset.Set
+	}{
+		{
+			name:       "should find nested file from root",
+			root:       "./test-fixtures/image-simple",
+			searchFile: "target/really/nested/file-3.txt",
+			expected:   strset.New("file-3.txt"),
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			resolver := NewFromUnindexedDirectory(c.root)
+			rootLoc := file.NewLocation(c.root)
+			loc := resolver.RelativeFileByPath(rootLoc, c.searchFile)
+			assert.True(t, c.expected.Has(loc.Coordinates.RealPath), "does not have path %q", loc.RealPath)
+		})
+	}
+}
+
 func testWithTimeout(t *testing.T, timeout time.Duration, test func(*testing.T)) {
 	done := make(chan bool)
 	go func() {

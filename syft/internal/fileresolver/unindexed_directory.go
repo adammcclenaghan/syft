@@ -265,7 +265,7 @@ func (u UnindexedDirectory) FilesByMIMEType(types ...string) ([]syftFile.Locatio
 // RelativeFileByPath fetches a single file at the given path relative to the layer squash of the given reference.
 // This is helpful when attempting to find a file that is in the same layer or lower as another file.
 func (u UnindexedDirectory) RelativeFileByPath(l syftFile.Location, p string) *syftFile.Location {
-	p = path.Clean(path.Join(l.RealPath, p))
+	p = path.Clean(p)
 	locs, err := u.filesByPath(true, false, p)
 	if err != nil || len(locs) == 0 {
 		return nil
