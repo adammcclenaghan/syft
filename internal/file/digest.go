@@ -3,6 +3,7 @@ package file
 import (
 	"crypto"
 	"fmt"
+	md5simd "github.com/minio/md5-simd"
 	"hash"
 	"io"
 	"strings"
@@ -21,13 +22,24 @@ func supportedHashAlgorithms() []crypto.Hash {
 	}
 }
 
-func NewDigestsFromFile(closer io.ReadCloser, hashes []crypto.Hash, copyBuf []byte) ([]file.Digest, error) {
+func NewDigestsFromFile(closer io.ReadCloser, hashes []crypto.Hash, copyBuf []byte, md5server md5simd.Server) ([]file.Digest, error) {
 	hashes = NormalizeHashes(hashes)
 	// create a set of hasher objects tied together with a single writer to feed content into
 	hashers := make([]hash.Hash, len(hashes))
 	writers := make([]io.Writer, len(hashes))
 	for idx, hashObj := range hashes {
-		hashers[idx] = hashObj.New()
+		if hashObj == crypto.MD5 {
+			if md5server != nil {
+				// Use md5simd for MD5
+				md5Hash := md5server.NewHash()
+				hashers[idx] = md5Hash
+			} else {
+				hashers[idx] = hashObj.New()
+			}
+
+		} else {
+			hashers[idx] = hashObj.New()
+		}
 		writers[idx] = hashers[idx]
 	}
 

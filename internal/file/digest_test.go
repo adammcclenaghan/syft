@@ -78,7 +78,7 @@ func TestNewDigestsFromFile(t *testing.T) {
 			fh, err := os.Open(tt.fixture)
 			require.NoError(t, err)
 
-			got, err := NewDigestsFromFile(fh, tt.hashes, nil)
+			got, err := NewDigestsFromFile(fh, tt.hashes, nil, nil)
 			tt.wantErr(t, err)
 			if err != nil {
 				return

@@ -5,6 +5,7 @@ import (
 	"crypto"
 	"errors"
 	"fmt"
+	md5simd "github.com/minio/md5-simd"
 
 	"github.com/dustin/go-humanize"
 
@@ -51,8 +52,11 @@ func (i *Cataloger) Catalog(ctx context.Context, resolver file.Resolver, coordin
 	prog := catalogingProgress(int64(len(locations)))
 	bufSize := 64 * 1024
 	copyBuf := make([]byte, bufSize)
+	// TODO: Check if md5 is enabled before doing this I guess?
+	server := md5simd.NewServer()
+	defer server.Close()
 	for _, location := range locations {
-		result, err := i.catalogLocation(resolver, location, copyBuf)
+		result, err := i.catalogLocation(resolver, location, copyBuf, server)
 
 		if errors.Is(err, ErrUndigestableFile) {
 			continue
@@ -85,7 +89,7 @@ func (i *Cataloger) Catalog(ctx context.Context, resolver file.Resolver, coordin
 	return results, errs
 }
 
-func (i *Cataloger) catalogLocation(resolver file.Resolver, location file.Location, buf []byte) ([]file.Digest, error) {
+func (i *Cataloger) catalogLocation(resolver file.Resolver, location file.Location, buf []byte, md5server md5simd.Server) ([]file.Digest, error) {
 	meta, err := resolver.FileMetadataByLocation(location)
 	if err != nil {
 		return nil, err
@@ -102,7 +106,7 @@ func (i *Cataloger) catalogLocation(resolver file.Resolver, location file.Locati
 	}
 	defer internal.CloseAndLogError(contentReader, location.AccessPath)
 
-	digests, err := intFile.NewDigestsFromFile(contentReader, i.hashes, buf)
+	digests, err := intFile.NewDigestsFromFile(contentReader, i.hashes, buf, md5server)
 	if err != nil {
 		return nil, internal.ErrPath{Context: "digests-cataloger", Path: location.RealPath, Err: err}
 	}

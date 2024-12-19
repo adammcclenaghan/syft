@@ -91,6 +91,7 @@ require (
 	github.com/adrg/xdg v0.5.3
 	github.com/anchore/archiver/v3 v3.5.3-0.20241210171143-5b1d8d1c7c51
 	github.com/magiconair/properties v1.8.9
+	github.com/minio/md5-simd v1.1.2
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 )
 
@@ -161,6 +162,7 @@ require (
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
+	github.com/klauspost/cpuid/v2 v2.0.4 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect

@@ -480,7 +480,7 @@ func getDigestsFromArchive(archivePath string) ([]file.Digest, error) {
 	defer internal.CloseAndLogError(archiveCloser, archivePath)
 
 	// grab and assign digest for the entire archive
-	digests, err := intFile.NewDigestsFromFile(archiveCloser, javaArchiveHashes, nil)
+	digests, err := intFile.NewDigestsFromFile(archiveCloser, javaArchiveHashes, nil, nil)
 	if err != nil {
 		log.Warnf("failed to create digest for file=%q: %+v", archivePath, err)
 	}

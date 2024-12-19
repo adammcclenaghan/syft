@@ -68,7 +68,7 @@ func New(cfg Config) (source.Source, error) {
 
 		defer fh.Close()
 
-		digests, err = intFile.NewDigestsFromFile(fh, cfg.DigestAlgorithms, nil)
+		digests, err = intFile.NewDigestsFromFile(fh, cfg.DigestAlgorithms, nil, nil)
 		if err != nil {
 			return nil, fmt.Errorf("unable to calculate digests for file=%q: %w", cfg.Path, err)
 		}
