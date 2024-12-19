@@ -2,13 +2,10 @@ package file
 
 import (
 	"crypto"
-	"os"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/anchore/syft/syft/file"
+	"os"
+	"testing"
 )
 
 func TestCleanDigestAlgorithmName(t *testing.T) {
@@ -81,7 +78,7 @@ func TestNewDigestsFromFile(t *testing.T) {
 			fh, err := os.Open(tt.fixture)
 			require.NoError(t, err)
 
-			got, err := NewDigestsFromFile(fh, tt.hashes)
+			got, err := NewDigestsFromFile(fh, tt.hashes, nil)
 			tt.wantErr(t, err)
 			if err != nil {
 				return

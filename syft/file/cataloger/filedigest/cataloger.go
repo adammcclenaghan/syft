@@ -49,6 +49,8 @@ func (i *Cataloger) Catalog(ctx context.Context, resolver file.Resolver, coordin
 	}
 
 	prog := catalogingProgress(int64(len(locations)))
+	bufSize := 64 * 1024
+	copyBuf := make([]byte, bufSize)
 	for _, location := range locations {
 		result, err := i.catalogLocation(resolver, location)
 
@@ -83,7 +85,7 @@ func (i *Cataloger) Catalog(ctx context.Context, resolver file.Resolver, coordin
 	return results, errs
 }
 
-func (i *Cataloger) catalogLocation(resolver file.Resolver, location file.Location) ([]file.Digest, error) {
+func (i *Cataloger) catalogLocation(resolver file.Resolver, location file.Location, buf []byte) ([]file.Digest, error) {
 	meta, err := resolver.FileMetadataByLocation(location)
 	if err != nil {
 		return nil, err
@@ -100,7 +102,7 @@ func (i *Cataloger) catalogLocation(resolver file.Resolver, location file.Locati
 	}
 	defer internal.CloseAndLogError(contentReader, location.AccessPath)
 
-	digests, err := intFile.NewDigestsFromFile(contentReader, i.hashes)
+	digests, err := intFile.NewDigestsFromFile(contentReader, i.hashes, buf)
 	if err != nil {
 		return nil, internal.ErrPath{Context: "digests-cataloger", Path: location.RealPath, Err: err}
 	}
