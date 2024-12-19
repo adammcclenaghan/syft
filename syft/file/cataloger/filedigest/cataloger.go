@@ -52,7 +52,7 @@ func (i *Cataloger) Catalog(ctx context.Context, resolver file.Resolver, coordin
 	bufSize := 64 * 1024
 	copyBuf := make([]byte, bufSize)
 	for _, location := range locations {
-		result, err := i.catalogLocation(resolver, location)
+		result, err := i.catalogLocation(resolver, location, copyBuf)
 
 		if errors.Is(err, ErrUndigestableFile) {
 			continue
